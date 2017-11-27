@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", init);
 var container, stats;
-var camera, scene, renderer, light;
+var camera, delta, scene, renderer, light;
 var controls, water, sphere, cubeMap;
 
 var currentlyPressedKeys = {};
@@ -14,8 +14,9 @@ var parameters = {
 
 //init();
 
-
 function init() {
+
+    delta = 1;
 
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -75,13 +76,13 @@ function init() {
         }
     };
 
-    var onError = function (xhr) {};
+    var onError = function (xhr) { };
 
     var loader = new THREE.OBJLoader(manager);
     loader.load('obj/MansionAuditore.obj', function (object) {
-        
+
         object.rotateY(-184);
-        object.position.x=500;
+        object.position.x = 500;
         object.position.y = 50;
         xScale = 20;
         object.scale.x = object.scale.y = object.scale.z = xScale;
@@ -95,7 +96,7 @@ function init() {
 
         });
 
-        
+
         scene.add(object);
 
     }, onProgress, onError);
@@ -107,11 +108,18 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
 
-    
-    //
+    controls = new THREE.FirstPersonControls(camera, renderer.domElement);
+    controls.movementSpeed = 70;
+    controls.lookSpeed = 0.05;
+    controls.noFly = true;
+
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
+
+    renderer.domElement.onmousedown = handleMouseDown;
+    renderer.domElement.onmouseup = handleMouseUp;
 
     // gui = new dat.GUI();
-
     // gui.add( parameters, 'distortionScale', 0, 8, 0.1 );
     // gui.add( parameters, 'size', 0.1, 10, 0.1 );
     // gui.add( parameters, 'alpha', 0.9, 1, .001 );
@@ -207,9 +215,8 @@ function init() {
 
     // // loadObject();
 
-    document.onkeydown = handleKeyDown;
-    document.onkeyup = handleKeyUp;
     // animate();
+
 }
 
 
@@ -261,10 +268,10 @@ function setWater() {
 
 
     //scene.fog(0x3d0f32, 50, 100);
-    
+
     var waterGeometry = new THREE.PlaneBufferGeometry(3000, 5000);
 
-    
+
     water = new THREE.Water(
         waterGeometry, {
             textureWidth: 20,
@@ -277,11 +284,11 @@ function setWater() {
             sunColor: 0x161616,
             waterColor: 0x0f1e3d,
             distortionScale: parameters.distortionScale,
-            fog: scene.fog = new THREE.FogExp2( 0x7c877c )
+            fog: scene.fog = new THREE.FogExp2(0x7c877c)
         }
     );
 
-    water.position.x=-1050;
+    water.position.x = -1050;
     water.rotation.x = -Math.PI / 2;
     water.receiveShadow = true;
 
@@ -324,67 +331,45 @@ function setSkybox() {
     var skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
 
     scene.add(skyBox);
-
 }
 
 
 function render() {
-
-    // camera.position.x += (mouseX - camera.position.x) * .05;
-    // camera.position.y += (-mouseY - camera.position.y) * .05;
-    handleKeys();
-    //camera.lookAt(scene.position);
     water.material.uniforms.time.value += 1.0 / 60.0;
     water.material.uniforms.size.value = parameters.size;
     water.material.uniforms.distortionScale.value = parameters.distortionScale;
     water.material.uniforms.alpha.value = parameters.alpha;
 
+    controls.update(delta);
     renderer.render(scene, camera);
-
 }
 
+var aKeyIsPressed = false;
 
 function handleKeyDown(event) {
     currentlyPressedKeys[event.keyCode] = true;
+    handleKeys();
 }
-
-
 function handleKeyUp(event) {
     currentlyPressedKeys[event.keyCode] = false;
+    handleKeys();
 }
-
+function handleMouseDown(event) {
+    delta = 0.1;
+}
+function handleMouseUp(event) {
+    if(!aKeyIsPressed)
+    delta = 0;
+}
 function handleKeys() {
-    if (currentlyPressedKeys[69]) {
-        //E
-        camera.rotation.y -= 5 * Math.PI / 180;
-
-    } else if (currentlyPressedKeys[81]) {
-        //Q
-        camera.rotation.y += 5 * Math.PI / 180;
-
-    } else {}
-
-    if (currentlyPressedKeys[37] || currentlyPressedKeys[65]) {
-        // Left cursor key or A
-        camera.position.x -= 5;
-    } else if (currentlyPressedKeys[39] || currentlyPressedKeys[68]) {
-        // Right cursor key or D
-        camera.position.x += 5;
+    if (currentlyPressedKeys[37] || currentlyPressedKeys[65] || currentlyPressedKeys[39] || currentlyPressedKeys[68]
+        || currentlyPressedKeys[38] || currentlyPressedKeys[87] || currentlyPressedKeys[40] || currentlyPressedKeys[83]
+        || currentlyPressedKeys[32] || currentlyPressedKeys[16]) {
+        delta = 0.1;
+        aKeyIsPressed = true;
     }
-
-    if (currentlyPressedKeys[38] || currentlyPressedKeys[87]) {
-        // Up cursor key or W
-        camera.position.z -= 5;
-    } else if (currentlyPressedKeys[40] || currentlyPressedKeys[83]) {
-        // Down cursor key
-        camera.position.z += 5;
+    else {
+        delta = 0;
+        aKeyIsPressed = false;
     }
-
-    if (currentlyPressedKeys[32]) {
-        camera.position.y += 5;
-    } else if (currentlyPressedKeys[16]) {
-        camera.position.y -= 5;
-
-    }
-
 }
