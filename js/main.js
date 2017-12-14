@@ -6,7 +6,7 @@ var controls, water, sphere, cubeMap;
 
 var worlSize = 30000;
 
-var houseX; var houseY; var houseZ;
+var house;
 
 //birds
 var SCREEN_WIDTH = window.innerWidth,
@@ -32,7 +32,7 @@ function init() {
     document.body.appendChild(container);
 
     camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1, 20000);
-    camera.position.set(0, -2300, 250);
+    camera.position.set(0, -2480, 250);
 
     // scene
     scene = new THREE.Scene();
@@ -83,12 +83,8 @@ function init() {
     }
     /////////////////////////////////////////////////////////////
 
-    houseX = camera.position.x + 100;
-    houseY = camera.position.y;
-    houseZ = camera.position.z;
-    addObj('WoodenCabinObj', houseX, houseY, houseZ);
-
-    addCloth();
+    addObj('WoodenCabinObj', 0, -2502, 250);
+    addCloth(0, 0, 0);
 
     renderer = new THREE.WebGLRenderer();
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -149,12 +145,13 @@ var animate = function () {
     simulate(time);
     //////
 
+    houseAnim();
+
     requestAnimationFrame(animate);
     render();
 };
 
 var clothGeometry;
-
 var pinsFormation = [];
 var pins = [6];
 pinsFormation.push(pins);
@@ -170,8 +167,9 @@ pins = pinsFormation[1];
 function togglePins() {
     pins = pinsFormation[~~(Math.random() * pinsFormation.length)];
 }
+var cloth1;
 
-function addCloth() {
+function addCloth(x, y, z) {
     // cloth material
     var loader = new THREE.TextureLoader();
     var clothTexture = loader.load('textures/circuit_pattern.png');
@@ -185,7 +183,9 @@ function addCloth() {
     clothGeometry = new THREE.ParametricGeometry(clothFunction, cloth.w, cloth.h);
     // cloth mesh
     object = new THREE.Mesh(clothGeometry, clothMaterial);
-    object.position.set(houseX+12, houseY+20, houseZ+33);
+    object.position.set(x, y, z);
+    cloth1 = object;
+
     var scaleN = 0.024;
     object.scale.set(scaleN, scaleN, scaleN);
     object.castShadow = true;
@@ -195,6 +195,8 @@ function addCloth() {
         map: clothTexture,
         alphaTest: 0.5
     });
+
+
 }
 
 function setWater() {
@@ -237,10 +239,9 @@ function addObj(name, x, y, z) {
             object.position.x = x;
             object.position.y = y;
             object.position.z = z;
+            if (name == "WoodenCabinObj")
+                house = object
             scene.add(object);
-
-
-
         });
     });
 }
@@ -303,7 +304,6 @@ function render() {
         bird.geometry.vertices[5].y = bird.geometry.vertices[4].y = Math.sin(bird.phase) * 5;
     }
     //////////////////
-
     ///CLOTH
     var p = cloth.particles;
     for (var i = 0, il = p.length; i < il; i++) {
@@ -313,6 +313,8 @@ function render() {
     clothGeometry.computeFaceNormals();
     clothGeometry.computeVertexNormals();
     //////////////////////
+
+
 
     controls.update(delta);
     renderer.render(scene, camera);
@@ -349,5 +351,38 @@ function handleKeys() {
     else {
         delta = 0;
         aKeyIsPressed = false;
+    }
+}
+
+var rot = false
+var rotspeed = 0.0002
+
+function houseAnim() {
+
+    if (house != null && cloth1 != null) {
+        cloth1.position.x = house.position.x + 11.5
+        cloth1.position.y = house.position.y + 20.5
+        cloth1.position.z = house.position.z + 33
+
+        house.position.z -= 0.1
+
+        if (rot) {
+            house.rotation.x += rotspeed
+            house.rotation.y += rotspeed
+            house.rotation.z += rotspeed
+            if (house.rotation.x > 0.01) {
+                rot = false
+            }
+
+        }
+        else {
+            house.rotation.x -= rotspeed
+            house.rotation.y -= rotspeed
+            house.rotation.z -= rotspeed
+            if (house.rotation.x < -0.01) {
+                rot = true
+            }
+        }
+
     }
 }
