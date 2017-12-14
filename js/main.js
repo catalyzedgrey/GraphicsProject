@@ -1,33 +1,40 @@
 document.addEventListener("DOMContentLoaded", init);
+
 var container, stats;
 var camera, delta, scene, renderer, light;
 var controls, water, sphere, cubeMap;
 
-var currentlyPressedKeys = {};
+var worlSize = 30000;
 
+var houseX; var houseY; var houseZ;
+
+//birds
+var SCREEN_WIDTH = window.innerWidth,
+    SCREEN_HEIGHT = window.innerHeight,
+    SCREEN_WIDTH_HALF = SCREEN_WIDTH / 2,
+    SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
+var birds, bird;
+var boid, boids;
+//////////
+
+var currentlyPressedKeys = {};
 var parameters = {
-    oceanSide: 1000,
     size: 0.5,
     distortionScale: 3.7,
     alpha: 1.0
 };
 
-//init();
-
 function init() {
 
-    delta = 1;
+    delta = 0;
 
     container = document.createElement('div');
     document.body.appendChild(container);
 
     camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1, 20000);
-    //camera.position.set( 30, 30, 100 );
-    camera.position.y = 100;
-    camera.position.z = 250;
+    camera.position.set(0, -2300, 250);
 
     // scene
-
     scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0xaabbbb, 0.001);
 
@@ -55,59 +62,40 @@ function init() {
     setWater();
 
     setSkybox();
-    // texture
 
-    var manager = new THREE.LoadingManager();
-    manager.onProgress = function (item, loaded, total) {
+    //birds/////////////////////////////////////////////////////
+    birds = [];
+    boids = [];
 
-        console.log(item, loaded, total);
+    for (var i = 0; i < 200; i++) {
+        boid = boids[i] = new Boid();
+        boid.position.x = Math.random() * 400 - 200;
+        boid.position.y = Math.random() * 400 - 200;
+        boid.position.z = Math.random() * 400 - 200;
+        boid.velocity.x = Math.random() * 2 - 1;
+        boid.velocity.y = Math.random() * 2 - 1;
+        boid.velocity.z = Math.random() * 2 - 1;
+        boid.setAvoidWalls(true);
+        boid.setWorldSize(1000, 400, 400);
+        bird = birds[i] = new THREE.Mesh(new Bird(), new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff, side: THREE.DoubleSide }));
+        bird.phase = Math.floor(Math.random() * 62.83);
+        scene.add(bird);
+    }
+    /////////////////////////////////////////////////////////////
 
-    };
+    houseX = camera.position.x + 100;
+    houseY = camera.position.y;
+    houseZ = camera.position.z;
+    addObj('WoodenCabinObj', houseX, houseY, houseZ);
 
-    var textureLoader = new THREE.TextureLoader(manager);
-    var texture = textureLoader.load('textures/UV_Grid_Sm.jpg');
-
-    // model
-
-    var onProgress = function (xhr) {
-        if (xhr.lengthComputable) {
-            var percentComplete = xhr.loaded / xhr.total * 100;
-            console.log(Math.round(percentComplete, 2) + '% downloaded');
-        }
-    };
-
-    var onError = function (xhr) { };
-
-    var loader = new THREE.OBJLoader(manager);
-    loader.load('obj/MansionAuditore.obj', function (object) {
-
-        object.rotateY(-184);
-        object.position.x = 500;
-        object.position.y = 50;
-        xScale = 20;
-        object.scale.x = object.scale.y = object.scale.z = xScale;
-        object.traverse(function (child) {
-
-            if (child instanceof THREE.Mesh) {
-
-                child.material.map = texture;
-
-            }
-
-        });
-
-
-        scene.add(object);
-
-    }, onProgress, onError);
-
-    //
+    addCloth();
 
     renderer = new THREE.WebGLRenderer();
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
 
+    //CONTROLS
     controls = new THREE.FirstPersonControls(camera, renderer.domElement);
     controls.movementSpeed = 70;
     controls.lookSpeed = 0.05;
@@ -119,118 +107,16 @@ function init() {
     renderer.domElement.onmousedown = handleMouseDown;
     renderer.domElement.onmouseup = handleMouseUp;
 
-    // gui = new dat.GUI();
-    // gui.add( parameters, 'distortionScale', 0, 8, 0.1 );
-    // gui.add( parameters, 'size', 0.1, 10, 0.1 );
-    // gui.add( parameters, 'alpha', 0.9, 1, .001 );
-
-
-
-
-    //document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-
-    //
-
-    //window.addEventListener( 'resize', onWindowResize, false );
     animate();
 
     // renderer = new THREE.WebGLRenderer();
     // renderer.setSize(window.innerWidth, window.innerHeight);
     // document.body.appendChild(renderer.domElement);
 
-
-    // // camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500);
-    // // camera.position.set(0, 0, 100);
-    // camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
-    // camera.position.z = 250;
-    // //camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-    // scene = new THREE.Scene();
-
-
     // var ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
     // scene.add(ambientLight);
 
-    // var pointLight = new THREE.PointLight(0xffffff, 0.8);
-    // camera.add(pointLight);
-    // scene.add( camera );
-
-    // // texture
-
-    // var manager = new THREE.LoadingManager();
-    // manager.onProgress = function (item, loaded, total) {
-
-    //     console.log(item, loaded, total);
-
-    // };
-
-
-
-    // var textureLoader = new THREE.TextureLoader(manager);
-    // var texture = textureLoader.load('textures/UV_Grid_Sm.jpg');
-
-
-    // // model
-
-    // var onProgress = function (xhr) {
-    //     if (xhr.lengthComputable) {
-    //         var percentComplete = xhr.loaded / xhr.total * 100;
-    //         console.log(Math.round(percentComplete, 2) + '% downloaded');
-    //     }
-    // };
-
-    // var onError = function (xhr) {};
-    // var loader = new THREE.OBJLoader(manager);
-    // loader.load('obj/male02/male02.obj', function (object) {
-
-    //     object.traverse(function (child) {
-
-    //         if (child instanceof THREE.Mesh) {
-
-    //             child.material.map = texture;
-
-    //         }
-
-    //     });
-
-    //     object.position.y = -95;
-    //     scene.add(object);
-
-    // }, onProgress, onError);
-
-
-
-    // // var material = new THREE.LineBasicMaterial({
-    // //     color: 0x0000ff
-    // // });
-    // // //var geometry = new THREE.BoxGeometry( 1, 1, 1 );
-    // // //var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-
-    // // var geometry = new THREE.Geometry();
-    // // geometry.vertices.push(new THREE.Vector3(-10, 0, 0));
-    // // geometry.vertices.push(new THREE.Vector3(0, 10, 0));
-    // // geometry.vertices.push(new THREE.Vector3(10, 0, 0));
-    // // cube = new THREE.Line(geometry, material);
-    // // scene.add(cube);
-
-    // // loadObject();
-
-    // animate();
-
 }
-
-
-var loadObject = function () {
-
-    // //Manager from ThreeJs to track a loader and its status
-    // var manager = new THREE.LoadingManager();
-    //Loader for Obj from Three.js
-    var loader = new THREE.OBJLoader();
-    //Launch loading of the obj file, addBananaInScene is the callback when it's ready 
-    loader.load('models/farmhouse_obj.obj', addBananaInScene);
-
-};
-
 var addBananaInScene = function (object) {
     banana = object;
     //Move the banana in the scene
@@ -252,26 +138,69 @@ var addBananaInScene = function (object) {
     animate();
 };
 
-
 var animate = function () {
+
+    //Wind
+    var time = Date.now();
+    var windStrength = Math.cos(time / 7000) * 20 + 40;
+    windForce.set(Math.sin(time / 2000), Math.cos(time / 3000), Math.sin(time / 1000))
+    windForce.normalize()
+    windForce.multiplyScalar(windStrength);
+    simulate(time);
+    //////
+
     requestAnimationFrame(animate);
     render();
-
-    //stats.update();
-
-
-
 };
 
+var clothGeometry;
+
+var pinsFormation = [];
+var pins = [6];
+pinsFormation.push(pins);
+pins = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+pinsFormation.push(pins);
+pins = [0];
+pinsFormation.push(pins);
+pins = []; // cut the rope ;)
+pinsFormation.push(pins);
+pins = [0, cloth.w]; // classic 2 pins
+pinsFormation.push(pins);
+pins = pinsFormation[1];
+function togglePins() {
+    pins = pinsFormation[~~(Math.random() * pinsFormation.length)];
+}
+
+function addCloth() {
+    // cloth material
+    var loader = new THREE.TextureLoader();
+    var clothTexture = loader.load('textures/circuit_pattern.png');
+    clothTexture.anisotropy = 16;
+    var clothMaterial = new THREE.MeshLambertMaterial({
+        map: clothTexture,
+        side: THREE.DoubleSide,
+        alphaTest: 0.5
+    });
+    // cloth geometry
+    clothGeometry = new THREE.ParametricGeometry(clothFunction, cloth.w, cloth.h);
+    // cloth mesh
+    object = new THREE.Mesh(clothGeometry, clothMaterial);
+    object.position.set(houseX+12, houseY+20, houseZ+33);
+    var scaleN = 0.024;
+    object.scale.set(scaleN, scaleN, scaleN);
+    object.castShadow = true;
+    scene.add(object);
+    object.customDepthMaterial = new THREE.MeshDepthMaterial({
+        depthPacking: THREE.RGBADepthPacking,
+        map: clothTexture,
+        alphaTest: 0.5
+    });
+}
 
 function setWater() {
-
-
     //scene.fog(0x3d0f32, 50, 100);
 
-    var waterGeometry = new THREE.PlaneBufferGeometry(3000, 5000);
-
-
+    var waterGeometry = new THREE.PlaneBufferGeometry(worlSize, worlSize);
     water = new THREE.Water(
         waterGeometry, {
             textureWidth: 20,
@@ -284,34 +213,52 @@ function setWater() {
             sunColor: 0x161616,
             waterColor: 0x0f1e3d,
             distortionScale: parameters.distortionScale,
-            fog: scene.fog = new THREE.FogExp2(0x7c877c)
+            //fog: scene.fog = new THREE.FogExp2(0x7c877c)
         }
     );
-
-    water.position.x = -1050;
+    // water.position.x = -1050;
+    water.position.y = -2500;
     water.rotation.x = -Math.PI / 2;
     water.receiveShadow = true;
-
     scene.add(water);
+}
 
+//obj must be in folder "models", format is .obj, and its .mtl included with the same name
+function addObj(name, x, y, z) {
+    THREE.Loader.Handlers.add(/\.dds$/i, new THREE.DDSLoader());
+    var mtlLoader = new THREE.MTLLoader();
+    mtlLoader.setPath('models/');
+    mtlLoader.load((name + '.mtl'), function (materials) {
+        materials.preload();
+        var objLoader = new THREE.OBJLoader();
+        objLoader.setMaterials(materials);
+        objLoader.setPath('models/');
+        objLoader.load((name + '.obj'), function (object) {
+            object.position.x = x;
+            object.position.y = y;
+            object.position.z = z;
+            scene.add(object);
+
+
+
+        });
+    });
 }
 
 function setSkybox() {
 
     var cubeTextureLoader = new THREE.CubeTextureLoader();
-    //cubeTextureLoader.setPath('textures/cube/skyboxsun25deg/');
-    cubeTextureLoader.setPath('textures/cube/skybox1/');
-
-    // cubeMap = cubeTextureLoader.load([
-    //     'px.jpg', 'nx.jpg',
-    //     'py.jpg', 'ny.jpg',
-    //     'pz.jpg', 'nz.jpg',
-    // ]);
+    cubeTextureLoader.setPath('textures/cube/skybox/');
     cubeMap = cubeTextureLoader.load([
-        '1.png', '2.png',
-        '2.png', '4.png',
-        '5.png', '6.png',
+        'px.jpg', 'nx.jpg',
+        'py.jpg', 'ny.jpg',
+        'pz.jpg', 'nz.jpg',
     ]);
+    /* cubeMap = cubeTextureLoader.load([
+         '1.png', '2.png',
+         '2.png', '4.png',
+         '5.png', '6.png',
+     ]);*/
 
     var cubeShader = THREE.ShaderLib['cube'];
     cubeShader.uniforms['tCube'].value = cubeMap;
@@ -324,9 +271,9 @@ function setSkybox() {
     });
 
     var skyBoxGeometry = new THREE.BoxBufferGeometry(
-        parameters.oceanSide * 5 + 100,
-        parameters.oceanSide * 5 + 100,
-        parameters.oceanSide * 5 + 100);
+        worlSize,
+        worlSize,
+        worlSize);
 
     var skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
 
@@ -335,10 +282,37 @@ function setSkybox() {
 
 
 function render() {
+    //water
     water.material.uniforms.time.value += 1.0 / 60.0;
     water.material.uniforms.size.value = parameters.size;
     water.material.uniforms.distortionScale.value = parameters.distortionScale;
     water.material.uniforms.alpha.value = parameters.alpha;
+    //////////////////
+
+    //birds
+    for (var i = 0, il = birds.length; i < il; i++) {
+        boid = boids[i];
+        boid.run(boids);
+        bird = birds[i];
+        bird.position.copy(boids[i].position);
+        var color = bird.material.color;
+        color.r = color.g = color.b = (500 - bird.position.z) / 1000;
+        bird.rotation.y = Math.atan2(- boid.velocity.z, boid.velocity.x);
+        bird.rotation.z = Math.asin(boid.velocity.y / boid.velocity.length());
+        bird.phase = (bird.phase + (Math.max(0, bird.rotation.z) + 0.1)) % 62.83;
+        bird.geometry.vertices[5].y = bird.geometry.vertices[4].y = Math.sin(bird.phase) * 5;
+    }
+    //////////////////
+
+    ///CLOTH
+    var p = cloth.particles;
+    for (var i = 0, il = p.length; i < il; i++) {
+        clothGeometry.vertices[i].copy(p[i].position);
+    }
+    clothGeometry.verticesNeedUpdate = true;
+    clothGeometry.computeFaceNormals();
+    clothGeometry.computeVertexNormals();
+    //////////////////////
 
     controls.update(delta);
     renderer.render(scene, camera);
@@ -358,15 +332,19 @@ function handleMouseDown(event) {
     delta = 0.1;
 }
 function handleMouseUp(event) {
-    if(!aKeyIsPressed)
-    delta = 0;
+    if (!aKeyIsPressed)
+        delta = 0;
 }
+
 function handleKeys() {
     if (currentlyPressedKeys[37] || currentlyPressedKeys[65] || currentlyPressedKeys[39] || currentlyPressedKeys[68]
         || currentlyPressedKeys[38] || currentlyPressedKeys[87] || currentlyPressedKeys[40] || currentlyPressedKeys[83]
-        || currentlyPressedKeys[32] || currentlyPressedKeys[16]) {
+        || currentlyPressedKeys[32]) {
         delta = 0.1;
         aKeyIsPressed = true;
+        //Check if pressing shift
+        if (currentlyPressedKeys[16])
+            delta = 0.3;
     }
     else {
         delta = 0;
