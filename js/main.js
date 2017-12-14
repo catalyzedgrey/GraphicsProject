@@ -93,7 +93,7 @@ function init() {
 
     //CONTROLS
     controls = new THREE.FirstPersonControls(camera, renderer.domElement);
-    controls.movementSpeed = 70;
+    controls.movementSpeed = 10;
     controls.lookSpeed = 0.05;
     controls.noFly = true;
 
