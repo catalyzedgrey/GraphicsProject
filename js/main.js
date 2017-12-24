@@ -3,10 +3,9 @@ document.addEventListener("DOMContentLoaded", init);
 var container, stats;
 var camera, delta, scene, renderer, light;
 var controls, water, sphere, cubeMap;
-
+var mesh, mixer;
 var worlSize = 30000;
-
-var house;
+var house, horse;
 
 //birds
 var SCREEN_WIDTH = window.innerWidth,
@@ -24,6 +23,8 @@ var parameters = {
     alpha: 1.0
 };
 
+
+
 function init() {
 
     delta = 0;
@@ -36,7 +37,7 @@ function init() {
 
     // scene
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0xaabbbb, 0.001);
+    //scene.fog = new THREE.FogExp2(0xaabbbb, 0.001);
 
     var ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
     scene.add(ambientLight);
@@ -59,9 +60,47 @@ function init() {
     var ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
     scene.add(ambientLight);
 
+
+
+    // create the particle variables
+    var particleCount = 1800,
+        particles = new THREE.Geometry(),
+        pMaterial = new THREE.ParticleBasicMaterial({
+            color: 0x67c454,
+            size: 50
+        });
+
+    // now create the individual particles
+    for (var p = 0; p < particleCount; p++) {
+
+        // create a particle with random
+        // position values, -250 -> 250
+        var pX = Math.random() * 500 - 250,
+            pY = Math.random() * 500 - 250,
+            pZ = Math.random() * 500 - 250,
+            particle = new THREE.Vertex(
+                new THREE.Vector3(pX, pY, pZ)
+            );
+
+        // add it to the geometry
+        particles.vertices.push(particle);
+    }
+
+    // create the particle system
+    var particleSystem = new THREE.ParticleSystem(
+        particles,
+        pMaterial);
+
+    // add it to the scene
+    scene.add(particleSystem);
+
+
+
     setWater();
 
     setSkybox();
+
+    addHorse();
 
     //birds/////////////////////////////////////////////////////
     birds = [];
@@ -77,13 +116,19 @@ function init() {
         boid.velocity.z = Math.random() * 2 - 1;
         boid.setAvoidWalls(true);
         boid.setWorldSize(1000, 400, 400);
-        bird = birds[i] = new THREE.Mesh(new Bird(), new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff, side: THREE.DoubleSide }));
+        bird = birds[i] = new THREE.Mesh(new Bird(), new THREE.MeshBasicMaterial({
+            color: Math.random() * 0xffffff,
+            side: THREE.DoubleSide
+        }));
         bird.phase = Math.floor(Math.random() * 62.83);
         scene.add(bird);
     }
     /////////////////////////////////////////////////////////////
 
-    addObj('WoodenCabinObj', 0, -2502, 250);
+
+    addObj('low-poly-mill', 0, -2500, 0);
+
+    addObj('WoodenCabinObj', 0, -2502, -350);
     addCloth(0, 0, 0);
 
     renderer = new THREE.WebGLRenderer();
@@ -113,26 +158,35 @@ function init() {
     // scene.add(ambientLight);
 
 }
-var addBananaInScene = function (object) {
-    banana = object;
-    //Move the banana in the scene
-    banana.rotation.x = Math.PI / 2;
-    banana.position.y = -50;
-    banana.position.z = 50;
-    banana.scale(5000, 5000, 5000);
-    //Go through all children of the loaded object and search for a Mesh
-    object.traverse(function (child) {
-        //This allow us to check if the children is an instance of the Mesh constructor
-        if (child instanceof THREE.Mesh) {
-            child.material.color = new THREE.Color(0X00FF00);
-            //Sometimes there are some vertex normals missing in the .obj files, ThreeJs will compute them
-            child.geometry.computeVertexNormals();
-        }
+
+
+
+function addHorse() {
+    var loader = new THREE.JSONLoader();
+    loader.load("models/animated/horse.js", function (geometry) {
+
+        mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({
+            vertexColors: THREE.FaceColors,
+            morphTargets: true
+        }));
+        horse = mesh;
+
+        //mesh.position.setX(-500);
+        mesh.position.setY(-2500);
+        mesh.position.setZ(-50);
+
+        mesh.scale.set(0.2, 0.2, 0.2);
+        scene.add(mesh);
+
+        mixer = new THREE.AnimationMixer(mesh);
+
+        var clip = THREE.AnimationClip.CreateFromMorphTargetSequence('gallop', geometry.morphTargets, 30);
+        mixer.clipAction(clip).setDuration(1).play();
+
+
     });
-    //Add the 3D object in the scene
-    scene.add(banana);
-    animate();
-};
+}
+
 
 var animate = function () {
 
@@ -145,9 +199,12 @@ var animate = function () {
     simulate(time);
     //////
 
+
     houseAnim();
 
     requestAnimationFrame(animate);
+
+
     render();
 };
 
@@ -164,6 +221,7 @@ pinsFormation.push(pins);
 pins = [0, cloth.w]; // classic 2 pins
 pinsFormation.push(pins);
 pins = pinsFormation[1];
+
 function togglePins() {
     pins = pinsFormation[~~(Math.random() * pinsFormation.length)];
 }
@@ -198,6 +256,8 @@ function addCloth(x, y, z) {
 
 
 }
+
+
 
 function setWater() {
     //scene.fog(0x3d0f32, 50, 100);
@@ -246,6 +306,28 @@ function addObj(name, x, y, z) {
     });
 }
 
+
+function addIsland(name, x, y, z) {
+    THREE.Loader.Handlers.add(/\.dds$/i, new THREE.DDSLoader());
+    var mtlLoader = new THREE.MTLLoader();
+    mtlLoader.setPath('models/');
+    mtlLoader.load((name + '.mtl'), function (materials) {
+        materials.preload();
+        var objLoader = new THREE.OBJLoader();
+        objLoader.setMaterials(materials);
+        objLoader.setPath('models/');
+        objLoader.load((name + '.obj'), function (object) {
+
+            object.position.x = x;
+            object.position.y = y;
+            object.position.z = z;
+            object.scale.x = object.scale.y = object.scale.z = 100;
+
+            scene.add(object);
+        });
+    });
+}
+
 function setSkybox() {
 
     var cubeTextureLoader = new THREE.CubeTextureLoader();
@@ -281,6 +363,7 @@ function setSkybox() {
     scene.add(skyBox);
 }
 
+var prevTime = Date.now();
 
 function render() {
     //water
@@ -298,7 +381,7 @@ function render() {
         bird.position.copy(boids[i].position);
         var color = bird.material.color;
         color.r = color.g = color.b = (500 - bird.position.z) / 1000;
-        bird.rotation.y = Math.atan2(- boid.velocity.z, boid.velocity.x);
+        bird.rotation.y = Math.atan2(-boid.velocity.z, boid.velocity.x);
         bird.rotation.z = Math.asin(boid.velocity.y / boid.velocity.length());
         bird.phase = (bird.phase + (Math.max(0, bird.rotation.z) + 0.1)) % 62.83;
         bird.geometry.vertices[5].y = bird.geometry.vertices[4].y = Math.sin(bird.phase) * 5;
@@ -315,6 +398,21 @@ function render() {
     //////////////////////
 
 
+    if (mixer) {
+
+        var time = Date.now();
+
+        mixer.update((time - prevTime) * 0.001);
+
+
+        prevTime = time;
+
+        //horse.rotation.y+=0.02;
+        horse.position.z += 0.5;
+
+
+    }
+
 
     controls.update(delta);
     renderer.render(scene, camera);
@@ -326,29 +424,31 @@ function handleKeyDown(event) {
     currentlyPressedKeys[event.keyCode] = true;
     handleKeys();
 }
+
 function handleKeyUp(event) {
     currentlyPressedKeys[event.keyCode] = false;
     handleKeys();
 }
+
 function handleMouseDown(event) {
     delta = 0.1;
 }
+
 function handleMouseUp(event) {
     if (!aKeyIsPressed)
         delta = 0;
 }
 
 function handleKeys() {
-    if (currentlyPressedKeys[37] || currentlyPressedKeys[65] || currentlyPressedKeys[39] || currentlyPressedKeys[68]
-        || currentlyPressedKeys[38] || currentlyPressedKeys[87] || currentlyPressedKeys[40] || currentlyPressedKeys[83]
-        || currentlyPressedKeys[32]) {
+    if (currentlyPressedKeys[37] || currentlyPressedKeys[65] || currentlyPressedKeys[39] || currentlyPressedKeys[68] ||
+        currentlyPressedKeys[38] || currentlyPressedKeys[87] || currentlyPressedKeys[40] || currentlyPressedKeys[83] ||
+        currentlyPressedKeys[32]) {
         delta = 0.1;
         aKeyIsPressed = true;
         //Check if pressing shift
         if (currentlyPressedKeys[16])
             delta = 0.3;
-    }
-    else {
+    } else {
         delta = 0;
         aKeyIsPressed = false;
     }
@@ -374,8 +474,7 @@ function houseAnim() {
                 rot = false
             }
 
-        }
-        else {
+        } else {
             house.rotation.x -= rotspeed
             house.rotation.y -= rotspeed
             house.rotation.z -= rotspeed
