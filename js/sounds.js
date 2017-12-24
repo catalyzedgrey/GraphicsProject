@@ -4,4 +4,4 @@ myAudio.addEventListener('ended', function() {
     this.currentTime = 0;
     this.play();
 }, false);
-myAudio.play();
+//myAudio.play();

@@ -33,7 +33,7 @@ function init() {
     document.body.appendChild(container);
 
     camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1, 20000);
-    camera.position.set(0, -2480, 250);
+    camera.position.set(-400, -2400, 0);
 
     // scene
     scene = new THREE.Scene();
@@ -126,9 +126,8 @@ function init() {
     /////////////////////////////////////////////////////////////
 
 
-    addObj('low-poly-mill', 0, -2500, 0);
-
-    addObj('WoodenCabinObj', 0, -2502, -350);
+    addObj('low-poly-mill', 0, -2500, 0, 3);
+    addObj('WoodenCabinObj', 0, -2502, -350, 1);
     addCloth(0, 0, 0);
 
     renderer = new THREE.WebGLRenderer();
@@ -160,7 +159,6 @@ function init() {
 }
 
 
-
 function addHorse() {
     var loader = new THREE.JSONLoader();
     loader.load("models/animated/horse.js", function (geometry) {
@@ -171,9 +169,9 @@ function addHorse() {
         }));
         horse = mesh;
 
-        //mesh.position.setX(-500);
-        mesh.position.setY(-2500);
-        mesh.position.setZ(-50);
+        mesh.position.setX(-50);
+        mesh.position.setY(-2440);
+        mesh.position.setZ(-90);
 
         mesh.scale.set(0.2, 0.2, 0.2);
         scene.add(mesh);
@@ -182,8 +180,6 @@ function addHorse() {
 
         var clip = THREE.AnimationClip.CreateFromMorphTargetSequence('gallop', geometry.morphTargets, 30);
         mixer.clipAction(clip).setDuration(1).play();
-
-
     });
 }
 
@@ -286,7 +282,7 @@ function setWater() {
 }
 
 //obj must be in folder "models", format is .obj, and its .mtl included with the same name
-function addObj(name, x, y, z) {
+function addObj(name, x, y, z, Scale) {
     THREE.Loader.Handlers.add(/\.dds$/i, new THREE.DDSLoader());
     var mtlLoader = new THREE.MTLLoader();
     mtlLoader.setPath('models/');
@@ -299,6 +295,7 @@ function addObj(name, x, y, z) {
             object.position.x = x;
             object.position.y = y;
             object.position.z = z;
+            object.scale.x = object.scale.y = object.scale.z = Scale;
             if (name == "WoodenCabinObj")
                 house = object
             scene.add(object);
@@ -397,26 +394,21 @@ function render() {
     clothGeometry.computeVertexNormals();
     //////////////////////
 
-
     if (mixer) {
-
         var time = Date.now();
-
         mixer.update((time - prevTime) * 0.001);
-
-
         prevTime = time;
-
-        //horse.rotation.y+=0.02;
-        horse.position.z += 0.5;
-
-
+        horse.position.z = Math.cos(angleT) * radius
+        horse.position.x = -80 + Math.sin(angleT) * radius
+        angleT += 0.02
+        horse.rotation.y += 0.02
     }
-
-
     controls.update(delta);
     renderer.render(scene, camera);
 }
+
+var angleT = 5
+var radius = 40
 
 var aKeyIsPressed = false;
 
