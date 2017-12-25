@@ -1,0 +1,13 @@
+# Blender MTL File: 'fireplace.blend'
+# Material Count: 1
+
+newmtl Material
+Ns 17.647059
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+map_Bump C:\\Users\\megaprdel\\Desktop\\Animace\\Obrázky pro 3D\\Textury\\Ohniště\\ohniste4UVcomplet1.png
+map_Kd C:\\Users\\megaprdel\\Desktop\\Animace\\Obrázky pro 3D\\Textury\\Ohniště\\ohniste4UVcomplet1.png

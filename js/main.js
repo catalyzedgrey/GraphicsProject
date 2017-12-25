@@ -7,6 +7,8 @@ var mesh, mixer;
 var worlSize = 30000;
 var house, horse;
 
+var clock = new THREE.Clock();
+var fire;
 //birds
 var SCREEN_WIDTH = window.innerWidth,
     SCREEN_HEIGHT = window.innerHeight,
@@ -23,7 +25,48 @@ var parameters = {
     alpha: 1.0
 };
 
+function generateSprite() {
+    var canvas = document.createElement('canvas');
+    canvas.width = 16;
+    canvas.height = 16;
+    var context = canvas.getContext('2d');
+    var gradient = context.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, canvas.width / 2);
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.2, 'rgba(0,255,255,1)');
+    gradient.addColorStop(0.4, 'rgba(237,155,49,1)');
+    gradient.addColorStop(1, 'rgba(0,0,0,1)');
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    return canvas;
+}
 
+function initParticle(particle, delay) {
+    var particle = this instanceof THREE.Sprite ? this : particle;
+    var delay = delay !== undefined ? delay : 0;
+    particle.position.set(-100, -2450, -10);
+    particle.scale.x = particle.scale.y = Math.random() * 2 + 4;
+    new TWEEN.Tween(particle)
+        .delay(delay)
+        .to({}, 10000)
+        .onComplete(initParticle)
+        .start();
+    new TWEEN.Tween(particle.position)
+        .delay(delay)
+        .to({
+            x: Math.random() * 100 - 50,
+            y: Math.random() * 1000 - 500,
+            z: Math.random() * 4000 - 2000
+        }, 10000)
+        .start();
+    new TWEEN.Tween(particle.scale)
+        .delay(delay)
+        .to({
+            x: 0.0001,
+            y: 0.0001,
+            z: 0.0001
+        }, 300)
+        .start();
+}
 
 function init() {
 
@@ -37,7 +80,7 @@ function init() {
 
     // scene
     scene = new THREE.Scene();
-    //scene.fog = new THREE.FogExp2(0xaabbbb, 0.001);
+    
 
     var ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
     scene.add(ambientLight);
@@ -57,48 +100,42 @@ function init() {
     scene.add(light);
 
 
-    var ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
-    scene.add(ambientLight);
+    var material = new THREE.SpriteMaterial({
+        map: new THREE.CanvasTexture(generateSprite()),
+        blending: THREE.AdditiveBlending
+    });
 
 
-
-    // create the particle variables
-    var particleCount = 1800,
-        particles = new THREE.Geometry(),
-        pMaterial = new THREE.ParticleBasicMaterial({
-            color: 0x67c454,
-            size: 50
-        });
-
-    // now create the individual particles
-    for (var p = 0; p < particleCount; p++) {
-
-        // create a particle with random
-        // position values, -250 -> 250
-        var pX = Math.random() * 500 - 250,
-            pY = Math.random() * 500 - 250,
-            pZ = Math.random() * 500 - 250,
-            particle = new THREE.Vertex(
-                new THREE.Vector3(pX, pY, pZ)
-            );
-
-        // add it to the geometry
-        particles.vertices.push(particle);
+    for (var i = 0; i < 1000; i++) {
+        particle = new THREE.Sprite(material);
+        initParticle(particle, i * 10);
+        scene.add(particle);
     }
-
-    // create the particle system
-    var particleSystem = new THREE.ParticleSystem(
-        particles,
-        pMaterial);
-
-    // add it to the scene
-    scene.add(particleSystem);
-
-
 
     setWater();
 
     setSkybox();
+
+
+
+    var axisHelper = new THREE.AxisHelper( 5 );
+    scene.add( axisHelper );
+    var fireWidth  = 2;
+    var fireHeight = 4;
+    var fireDepth  = 2;
+    var sliceSpacing = 0.5;
+    fire = new VolumetricFire(
+      fireWidth,
+      fireHeight,
+      fireDepth,
+      sliceSpacing,
+      camera
+    );
+    scene.add( fire.mesh );
+    // you can set position, rotation and scale
+    // fire.mesh accepts THREE.mesh features
+    fire.mesh.position.set( -100, -2425, -10 );
+    fire.mesh.scale.set( 10, 10, 10 );
 
     addHorse();
 
@@ -127,6 +164,8 @@ function init() {
 
 
     addObj('low-poly-mill', 0, -2500, 0, 3);
+    addObj('fireplace',-100 , -2440, -8, 3);
+    //addObj('Campfire', 0,-3000,0, 3);
     addObj('WoodenCabinObj', 0, -2502, -350, 1);
     addCloth(0, 0, 0);
 
@@ -147,6 +186,8 @@ function init() {
     renderer.domElement.onmousedown = handleMouseDown;
     renderer.domElement.onmouseup = handleMouseUp;
 
+    window.addEventListener('resize', onWindowResize, false);
+
     animate();
 
     // renderer = new THREE.WebGLRenderer();
@@ -156,6 +197,12 @@ function init() {
     // var ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
     // scene.add(ambientLight);
 
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 
@@ -199,8 +246,8 @@ var animate = function () {
     houseAnim();
 
     requestAnimationFrame(animate);
-
-
+    var elapsed = clock.getElapsedTime();
+    fire.update(elapsed);
     render();
 };
 
@@ -363,12 +410,14 @@ function setSkybox() {
 var prevTime = Date.now();
 
 function render() {
+
+    TWEEN.update();
     //water
     water.material.uniforms.time.value += 1.0 / 60.0;
     water.material.uniforms.size.value = parameters.size;
     water.material.uniforms.distortionScale.value = parameters.distortionScale;
     water.material.uniforms.alpha.value = parameters.alpha;
-    //////////////////
+    ////////////////
 
     //birds
     for (var i = 0, il = birds.length; i < il; i++) {
