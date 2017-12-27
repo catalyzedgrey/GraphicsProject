@@ -1,4 +1,6 @@
 # GraphicsProject
+Amr Hany - 14p6007
+Hesham Akmal - 14p6008
 
 # Description
 A scene built using three.js
