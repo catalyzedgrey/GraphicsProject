@@ -11,5 +11,5 @@ A scene built using three.js
 First-person controls WASD
 
 # Objects
-Horse, floating house, wind mill, birds, reflective water
+Horse, floating house, wind mill, birds, reflective water, fire with some particles flying off of it
 
