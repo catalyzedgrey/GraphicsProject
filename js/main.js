@@ -189,14 +189,6 @@ function init() {
     window.addEventListener('resize', onWindowResize, false);
 
     animate();
-
-    // renderer = new THREE.WebGLRenderer();
-    // renderer.setSize(window.innerWidth, window.innerHeight);
-    // document.body.appendChild(renderer.domElement);
-
-    // var ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
-    // scene.add(ambientLight);
-
 }
 
 function onWindowResize() {
@@ -345,28 +337,6 @@ function addObj(name, x, y, z, Scale) {
             object.scale.x = object.scale.y = object.scale.z = Scale;
             if (name == "WoodenCabinObj")
                 house = object
-            scene.add(object);
-        });
-    });
-}
-
-
-function addIsland(name, x, y, z) {
-    THREE.Loader.Handlers.add(/\.dds$/i, new THREE.DDSLoader());
-    var mtlLoader = new THREE.MTLLoader();
-    mtlLoader.setPath('models/');
-    mtlLoader.load((name + '.mtl'), function (materials) {
-        materials.preload();
-        var objLoader = new THREE.OBJLoader();
-        objLoader.setMaterials(materials);
-        objLoader.setPath('models/');
-        objLoader.load((name + '.obj'), function (object) {
-
-            object.position.x = x;
-            object.position.y = y;
-            object.position.z = z;
-            object.scale.x = object.scale.y = object.scale.z = 100;
-
             scene.add(object);
         });
     });
