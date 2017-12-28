@@ -9,7 +9,7 @@ A scene built using OpenGL, javascript, three.js library.
 
 # Camera Controls
 Right mouse click to only look around.
-Left mouse click to move at the mouse position, or by WASD keys.
+Left mouse click to move towards the mouse position. WASD keys also work.
 
 # Objects
 - Skybox that gives a real feel of the sky.
