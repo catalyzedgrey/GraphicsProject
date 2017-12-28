@@ -20,3 +20,7 @@ A scene built using OpenGL, javascript, three.js library.
 - Flying birds in the sky.
 - Fire with some particles flying off of it.
 - Loop sound of the ocean.
+
+# Screenshots
+![alt text](https://raw.githubusercontent.com/inertGrey/GraphicsProject/master/screenshots/2.jpg)
+![alt text](https://raw.githubusercontent.com/inertGrey/GraphicsProject/master/screenshots/1.jpg)
